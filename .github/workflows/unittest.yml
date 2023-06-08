@@ -1,0 +1,27 @@
+name: Unit Test
+
+on:
+  push:
+
+jobs:
+  unit_test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      DOCKER_IMAGE: ghcr.io/kuis-isle3sw/ocaml-docker:20220404
+      DOCKER_NAME: ocaml_docker
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login GitHub Container Registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u kuis-isle3sw --password-stdin
+      - name: Pull Docker image
+        run: |
+          docker pull $DOCKER_IMAGE
+      - name: Build and run the image
+        run: |
+          docker run --user='root' -v $PWD:$PWD:Z -w $PWD --name $DOCKER_NAME -d -it $DOCKER_IMAGE
+      - name: Run test
+        run: |
+          docker exec $DOCKER_NAME /bin/bash -l -c 'eval $(opam env) && dune build'
+          docker exec $DOCKER_NAME /bin/bash -l -c 'eval $(opam env) && dune runtest'
