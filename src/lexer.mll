@@ -6,6 +6,8 @@ let reservedWords = [
   ("if", Parser.IF);
   ("then", Parser.THEN);
   ("true", Parser.TRUE);
+  ("in", Parser.IN);
+  ("let", Parser.LET);
 ]
 }
 rule comment depth = parse
@@ -27,6 +29,8 @@ and main = parse
 | ";;" { Parser.SEMISEMI }
 | "+" { Parser.PLUS }
 | "*" { Parser.MULT }
+| "<" { Parser.LT }
+| "=" { Parser.EQ }
 | "<" { Parser.LT }
 | ">" { Parser.GT }
 | "&&" { Parser.AND }

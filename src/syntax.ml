@@ -12,10 +12,13 @@ type exp =
   | BinOp of binOp * exp * exp
   | IfExp of exp * exp * exp
   | LogicOp of logicOp * exp * exp
+  | LetExp of id * exp * exp
 
 type program =
     Exp of exp
-
+  | Decl of id * exp
+  | LetDecls of (id * exp) list
+  
 type tyvar = int
 type ty =
     TyInt

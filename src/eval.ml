@@ -65,8 +65,23 @@ let rec eval_exp env = function
         | BoolV (false) -> BoolV (false)
         | _ -> err ("Both arguments must be boolean: ||"))
         | _ -> err ("Both arguments must be boolean: ||")))
+   | LetExp (id, exp1, exp2) ->
+     let value = eval_exp env exp1 in
+     eval_exp (Environment.extend id value env) exp2
         
         
 
 let eval_decl env = function
     Exp e -> let v = eval_exp env e in ("-", env, v)
+  | Decl (id, e) ->
+      let v = eval_exp env e in (id, Environment.extend id v env, v)
+ | LetDecls decls ->
+       let rec eval_decls env = function
+         | [] -> ("-", env, IntV 0)
+         | (id, e) :: decls ->
+             let v = eval_exp env e in
+             let env' = Environment.extend id v env in
+             eval_decls env' decls
+       in
+       eval_decls env decls
+ 
