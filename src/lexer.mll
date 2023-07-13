@@ -22,6 +22,9 @@ rule main = parse
 | "+" { Parser.PLUS }
 | "*" { Parser.MULT }
 | "<" { Parser.LT }
+| ">" { Parser.GT }
+| "&&" { print_endline "Matched &&"; Parser.AND }
+| "||" {Parser.OR}
 
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*
     { let id = Lexing.lexeme lexbuf in

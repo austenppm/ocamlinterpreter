@@ -1,7 +1,9 @@
 (* ML interpreter / type reconstruction *)
 type id = string
 
-type binOp = Plus | Mult | Lt
+type binOp = Plus | Mult | Lt | Gt
+
+type logicOp = Or | And
 
 type exp =
     Var of id
@@ -9,6 +11,7 @@ type exp =
   | BLit of bool
   | BinOp of binOp * exp * exp
   | IfExp of exp * exp * exp
+  | LogicOp of logicOp * exp * exp
 
 type program =
     Exp of exp
