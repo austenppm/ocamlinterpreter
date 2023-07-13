@@ -9,15 +9,10 @@ let reservedWords = [
 ]
 }
 
-{
-  let comment_depth = ref 0
-}
-
-
 rule main = parse
   (* ignore spacing and newline characters *)
   [' ' '\009' '\012' '\n']+     { main lexbuf }
-  | "(*"  { incr comment_depth; comment lexbuf }
+  
 
 | "-"? ['0'-'9']+
     { Parser.INTV (int_of_string (Lexing.lexeme lexbuf)) }
@@ -41,8 +36,3 @@ rule main = parse
      }
 | eof { exit 0 }
 
-and comment = parse
-  | "(*"  { incr comment_depth; comment lexbuf }
-  | "*)"  { decr comment_depth; if !comment_depth > 0 then comment lexbuf else token lexbuf }
-  | _     { comment lexbuf }
-  | eof   { failwith "End of file inside a comment" }
