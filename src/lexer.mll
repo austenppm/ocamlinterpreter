@@ -23,7 +23,7 @@ rule main = parse
 | "*" { Parser.MULT }
 | "<" { Parser.LT }
 | ">" { Parser.GT }
-| "&&" { print_endline "Matched &&"; Parser.AND }
+| "&&" { Parser.AND }
 | "||" {Parser.OR}
 
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*

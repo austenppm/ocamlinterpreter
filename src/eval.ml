@@ -44,12 +44,28 @@ let rec eval_exp env = function
      | BoolV false -> eval_exp env exp3
      | _ -> err ("Test expression must be boolean: if"))
   | LogicOp (op, exp1, exp2) ->
+        (match op with
+        And ->
         let arg1 = eval_exp env exp1 in
-        let arg2 = eval_exp env exp2 in
-        match op, arg1, arg2 with
-        | And, BoolV b1, BoolV b2 -> BoolV (b1 && b2)
-        | Or, BoolV b1, BoolV b2 -> BoolV (b1 || b2)
-        | _, _, _ -> err ("Both arguments must be boolean for logical operators")
+        (match arg1 with
+        BoolV (false) -> BoolV (false)
+        | BoolV (true) -> let arg2 = eval_exp env exp2 in
+        (match arg2 with
+        BoolV (true) -> BoolV (true)
+        | BoolV (false) -> BoolV (false)
+        | _ -> err ("Both arguments must be boolean: &&"))
+        | _ -> err ("Both arguments must be boolean: &&"))
+        | Or ->
+        let arg1 = eval_exp env exp1 in
+        (match arg1 with
+        BoolV (true) -> BoolV (true)
+        | BoolV (false) -> let arg2 = eval_exp env exp2 in
+        (match arg2 with
+        BoolV (true) -> BoolV (true)
+        | BoolV (false) -> BoolV (false)
+        | _ -> err ("Both arguments must be boolean: ||"))
+        | _ -> err ("Both arguments must be boolean: ||")))
+        
         
 
 let eval_decl env = function
