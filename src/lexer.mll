@@ -8,11 +8,16 @@ let reservedWords = [
   ("true", Parser.TRUE);
 ]
 }
+rule comment depth = parse
+  | "(*" { comment (depth + 1) lexbuf }
+  | "*)" { if depth = 0 then main lexbuf else comment (depth - 1) lexbuf }
+  | _    { comment depth lexbuf }
+  | eof  { failwith "Unterminated comment" }
 
-rule main = parse
+and main = parse
   (* ignore spacing and newline characters *)
   [' ' '\009' '\012' '\n']+     { main lexbuf }
-  
+| "(*" { comment 0 lexbuf }
 
 | "-"? ['0'-'9']+
     { Parser.INTV (int_of_string (Lexing.lexeme lexbuf)) }
@@ -35,4 +40,5 @@ rule main = parse
       _ -> Parser.ID id
      }
 | eof { exit 0 }
+
 
