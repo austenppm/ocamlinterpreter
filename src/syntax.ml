@@ -13,7 +13,8 @@ type exp =
   | IfExp of exp * exp * exp
   | LogicOp of logicOp * exp * exp
   | LetExp of id * exp * exp
-
+  | LetAndExp of (id * exp) list * exp
+  
 type program =
     Exp of exp
   | Decl of id * exp

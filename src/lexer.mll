@@ -8,6 +8,7 @@ let reservedWords = [
   ("true", Parser.TRUE);
   ("in", Parser.IN);
   ("let", Parser.LET);
+  ("and", Parser.LETAND);
 ]
 }
 rule comment depth = parse
@@ -33,6 +34,7 @@ and main = parse
 | "=" { Parser.EQ }
 | "<" { Parser.LT }
 | ">" { Parser.GT }
+| "and" { Parser.LETAND }
 | "&&" { Parser.AND }
 | "||" {Parser.OR}
 

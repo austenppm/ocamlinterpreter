@@ -68,20 +68,32 @@ let rec eval_exp env = function
    | LetExp (id, exp1, exp2) ->
      let value = eval_exp env exp1 in
      eval_exp (Environment.extend id value env) exp2
-        
-        
+| LetAndExp (decls, body) ->
+  let ids = List.map fst decls in
+  let has_duplicates =
+    List.length ids <> List.length (List.sort_uniq compare ids)
+  in
+  if has_duplicates then
+    err "Duplicate variable declaration in let ... and ..."
+  else
+    let values = List.map (fun (id, exp) -> (id, eval_exp env exp)) decls in
+    let env' = List.fold_left (fun env (id, value) -> Environment.extend id value env) env values in
+    eval_exp env' body
+
 
 let eval_decl env = function
     Exp e -> let v = eval_exp env e in ("-", env, v)
   | Decl (id, e) ->
       let v = eval_exp env e in (id, Environment.extend id v env, v)
- | LetDecls decls ->
-       let rec eval_decls env = function
-         | [] -> ("-", env, IntV 0)
-         | (id, e) :: decls ->
-             let v = eval_exp env e in
-             let env' = Environment.extend id v env in
-             eval_decls env' decls
-       in
-       eval_decls env decls
- 
+| LetDecls decls ->
+  let ids = List.map fst decls in
+  let has_duplicates =
+    List.length ids <> List.length (List.sort_uniq compare ids)
+  in
+  if has_duplicates then
+    err "Duplicate variable declaration in let ... and ..."
+  else
+    let values = List.map (fun (id, exp) -> (id, eval_exp env exp)) decls in
+    let env' = List.fold_left (fun env (id, value) -> Environment.extend id value env) env values in
+    ("-", env', IntV 0)
+

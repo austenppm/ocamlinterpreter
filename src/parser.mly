@@ -6,7 +6,7 @@ open Syntax
 %token PLUS MULT LT GT
 %token IF THEN ELSE TRUE FALSE
 %token AND OR
-%token LET IN EQ 
+%token LET IN EQ LETAND
 
 %token <int> INTV
 %token <Syntax.id> ID
@@ -23,15 +23,19 @@ toplevel :
 Expr :
     e=IfExpr  { e }
   | e=LetExpr { e } 
+  | e=LetAndExpr { e }
   | e=OrExpr  { e }
 
 LetExpr :
      LET x=ID EQ e1=Expr IN e2=Expr { LetExp (x, e1, e2) }
+
+LetAndExpr :
+     LET x=ID EQ e1=Expr LETAND decls=LetDecls IN e2=Expr { LetAndExp ((x, e1) :: decls, e2) }
      
 LetDecls :
      x=ID EQ e=Expr { [(x, e)] }
-   | x=ID EQ e=Expr LET decls=LetDecls { (x, e) :: decls }
-
+   | x=ID EQ e=Expr LETAND decls=LetDecls { (x, e) :: decls }
+   
 OrExpr :
     l=AndExpr OR r=OrExpr  { LogicOp (Or, l, r) }
   | e=AndExpr { e }
