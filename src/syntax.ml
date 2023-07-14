@@ -14,6 +14,8 @@ type exp =
   | LogicOp of logicOp * exp * exp
   | LetExp of id * exp * exp
   | LetAndExp of (id * exp) list * exp
+  | FunExp of id * exp 
+  | AppExp of exp * exp 
   
 type program =
     Exp of exp

@@ -7,6 +7,7 @@ open Syntax
 %token IF THEN ELSE TRUE FALSE
 %token AND OR
 %token LET IN EQ LETAND
+%token RARROW FUN 
 
 %token <int> INTV
 %token <Syntax.id> ID
@@ -25,6 +26,9 @@ Expr :
   | e=LetExpr { e } 
   | e=LetAndExpr { e }
   | e=OrExpr  { e }
+  | e=FunExpr { e }
+  | e=MExpr   { e }
+
 
 LetExpr :
      LET x=ID EQ e1=Expr IN e2=Expr { LetExp (x, e1, e2) }
@@ -66,3 +70,14 @@ Atom :
 
 IfExpr :
     IF c=Expr THEN t=Expr ELSE e=Expr { IfExp (c, t, e) }
+
+MExpr :
+    e1=MExpr MULT e2=AppExpr { BinOp (Mult, e1, e2) }
+  | e=AppExpr { e } 
+
+AppExpr :
+    e1=AppExpr e2=Atom { AppExp (e1, e2) }
+  | e=Atom { e }
+
+FunExpr :
+    FUN x=ID RARROW e=Expr { FunExp (x, e) }
