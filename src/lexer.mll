@@ -28,7 +28,6 @@ and main = parse
 
 | "(" { Parser.LPAREN }
 | ")" { Parser.RPAREN }
-| '(' ('+' | '-' | '*' | '/') ')' { NEUTOP (Lexing.lexeme lexbuf) }
 | ";;" { Parser.SEMISEMI }
 | "+" { Parser.PLUS }
 | "*" { Parser.MULT }
