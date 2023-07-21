@@ -3,7 +3,8 @@ open Syntax
 type exval =
     IntV of int
   | BoolV of bool
-  | ProcV of id * exp * dnval Environment.t 
+  | ProcV of id * exp * dnval Environment.t ref  
+  | DProcV of id * exp  
 and dnval = exval
 
 exception Error of string
@@ -14,8 +15,22 @@ let err s = raise (Error s)
 let rec string_of_exval = function
     IntV i -> string_of_int i
   | BoolV b -> string_of_bool b
+  | ProcV (_,_,_) -> "<fun>" 
+  | DProcV(_,_) -> "<dfun>" 
 
 let pp_val v = print_string (string_of_exval v)
+
+let boundError () = err ("Same variable is bound several times")
+let get_id l = List.map (fun (id, _) -> id ) l
+let isBoundSeveralTimes l =
+  let idlist = get_id l in
+  let rec bound idlist =
+  match idlist with
+  [] -> false
+  | x :: [] -> false
+  | x :: y :: rest -> 
+    if x=y then true 
+    else bound (x :: rest) || bound (y :: rest) in bound idlist
 
 let rec apply_prim op arg1 arg2 = match op, arg1, arg2 with
     Plus, IntV i1, IntV i2 -> IntV (i1 + i2)
@@ -24,9 +39,10 @@ let rec apply_prim op arg1 arg2 = match op, arg1, arg2 with
   | Mult, _, _ -> err ("Both arguments must be integer: *")
   | Lt, IntV i1, IntV i2 -> BoolV (i1 < i2)
   | Lt, _, _ -> err ("Both arguments must be integer: <")
-  | Gt, IntV i1, IntV i2 -> BoolV (i1 > i2)
-  | Gt, _, _ -> err ("Both arguments must be integer: >")
-
+  | Or, BoolV i1, BoolV i2 -> BoolV (i1 || i2)  
+  | Or, _, _ -> err ("Both arguments must be boolean: ||")
+  | And, BoolV i1, BoolV i2 -> BoolV (i1 && i2) 
+  | And, _, _ -> err ("Both arguments must be boolean: &&")
 
 let rec eval_exp env = function
     Var x ->
@@ -36,7 +52,9 @@ let rec eval_exp env = function
   | BLit b -> BoolV b
   | BinOp (op, exp1, exp2) ->
     let arg1 = eval_exp env exp1 in
-    let arg2 = eval_exp env exp2 in
+    if (op = And && arg1 = BoolV false) then BoolV false  
+    else if (op = Or && arg1 = BoolV true) then BoolV true 
+    else let arg2 = eval_exp env exp2 in
     apply_prim op arg1 arg2
   | IfExp (exp1, exp2, exp3) ->
     let test = eval_exp env exp1 in
@@ -44,68 +62,43 @@ let rec eval_exp env = function
        BoolV true -> eval_exp env exp2
      | BoolV false -> eval_exp env exp3
      | _ -> err ("Test expression must be boolean: if"))
-  | LogicOp (op, exp1, exp2) ->
-        (match op with
-        And ->
-        let arg1 = eval_exp env exp1 in
-        (match arg1 with
-        BoolV (false) -> BoolV (false)
-        | BoolV (true) -> let arg2 = eval_exp env exp2 in
-        (match arg2 with
-        BoolV (true) -> BoolV (true)
-        | BoolV (false) -> BoolV (false)
-        | _ -> err ("Both arguments must be boolean: &&"))
-        | _ -> err ("Both arguments must be boolean: &&"))
-        | Or ->
-        let arg1 = eval_exp env exp1 in
-        (match arg1 with
-        BoolV (true) -> BoolV (true)
-        | BoolV (false) -> let arg2 = eval_exp env exp2 in
-        (match arg2 with
-        BoolV (true) -> BoolV (true)
-        | BoolV (false) -> BoolV (false)
-        | _ -> err ("Both arguments must be boolean: ||"))
-        | _ -> err ("Both arguments must be boolean: ||")))
-   | LetExp (id, exp1, exp2) ->
-     let value = eval_exp env exp1 in
-     eval_exp (Environment.extend id value env) exp2
-   | LetAndExp (decls, body) ->
-  let ids = List.map fst decls in
-  let has_duplicates =
-    List.length ids <> List.length (List.sort_uniq compare ids)
-  in
-  if has_duplicates then
-    err "Duplicate variable declaration in let ... and ..."
-  else
-    let values = List.map (fun (id, exp) -> (id, eval_exp env exp)) decls in
-    let env' = List.fold_left (fun env (id, value) -> Environment.extend id value env) env values in
-    eval_exp env' body
-  | FunExp (id, exp) -> ProcV (id, exp, env)
+  | LetExp (ls,restexp) ->
+    if isBoundSeveralTimes ls then boundError();
+    let id_vals = List.map (fun (id, e) -> (id, eval_exp env e)) ls in
+     let newenv = List.fold_left (fun e (id, v) -> Environment.extend id v e) env id_vals in
+     eval_exp newenv restexp
+
+  | FunExp (id, exp) -> ProcV (id, exp, ref env) 
+  | DFunExp (id,exp) -> DProcV (id,exp)
   | AppExp (exp1, exp2) ->
       let funval = eval_exp env exp1 in
       let arg = eval_exp env exp2 in
       (match funval with
           ProcV (id, body, env') -> 
-              let newenv = Environment.extend id arg env' in
+              let newenv = Environment.extend id arg env'.contents in
                 eval_exp newenv body
-        | _ -> 
-          err ("Non-function value is applied"))
+        | DProcV (id, body) -> let newenv = Environment.extend id arg env in 
+                eval_exp newenv body
+        | _ -> err ("Non-function value is applied"))
+  
+  | LetRecExp (id, para, exp1, exp2) ->
+    let dummyenv = ref Environment.empty in 
+    let newenv = Environment.extend id (ProcV (para, exp1, dummyenv)) env in
+        dummyenv := newenv;
+        eval_exp newenv exp2
+  
 
-
-
-let eval_decl env = function
-    Exp e -> let v = eval_exp env e in ("-", env, v)
-  | Decl (id, e) ->
-      let v = eval_exp env e in (id, Environment.extend id v env, v)
-| LetDecls decls ->
-  let ids = List.map fst decls in
-  let has_duplicates =
-    List.length ids <> List.length (List.sort_uniq compare ids)
-  in
-  if has_duplicates then
-    err "Duplicate variable declaration in let ... and ..."
-  else
-    let values = List.map (fun (id, exp) -> (id, eval_exp env exp)) decls in
-    let env' = List.fold_left (fun env (id, value) -> Environment.extend id value env) env values in
-    ("-", env', IntV 0)
-
+let eval_decl env = function 
+    Exp e -> let v = eval_exp env e in (["-", v], env)
+  | Decl e_ls -> 
+       if isBoundSeveralTimes e_ls then boundError();
+       let v_ls = List.map (fun (id, e) -> (id, eval_exp env e)) e_ls in
+       let newenv = List.fold_left (fun e (id, v) -> Environment.extend id v e) env v_ls in
+         (v_ls, newenv)
+  | RecDecl (id, para, e) ->
+    let dummyenv = ref Environment.empty in
+    let v = (ProcV (para, e, dummyenv)) in
+    let newenv = Environment.extend id v env in 
+    dummyenv := newenv;
+    (["-", v], newenv)
+  | QuitDecl -> exit 0 (*quit interactive session*)
