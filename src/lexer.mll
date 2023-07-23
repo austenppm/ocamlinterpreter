@@ -41,11 +41,19 @@ rule main = parse
       with
       _ -> Parser.ID id
      }
+(* If we hit the end of file, exit the program *)
 | eof { exit 0 }
+
+(* Recognize start of a comment and switch to comment mode *)
 | "(*" { comment lexbuf; main lexbuf } 
+
+(* Rule for recognizing comments *)
 and comment = parse
+  (* If we see another comment start, recurse into another layer of comments *)
   "(*" { comment lexbuf; comment lexbuf }
+
+  (* If we see a comment end, return to the calling context *)
  | "*)" { () }
+
+  (* If we see any other character, ignore it and continue with the comment *)
  | _ { comment lexbuf }
-
-
